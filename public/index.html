@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Push Admin Dashboard</title>
+</head>
+<body>
+  <h1>Push Admin Dashboard</h1>
+
+  <!-- Notification Form -->
+  <form id="notifyForm">
+    <label>
+      Title:
+      <input type="text" name="title" placeholder="Notification Title" required>
+    </label>
+    <br>
+    <label>
+      Message:
+      <textarea name="message" placeholder="Notification Message" required></textarea>
+    </label>
+    <br>
+    <button type="submit">Send to All Subscribers</button>
+  </form>
+
+  <script>
+    const publicVapidKey = 'YOUR_VAPID_PUBLIC_KEY';
+
+    // Utility: convert Base64 string to Uint8Array
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding)
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
+      const raw = window.atob(base64);
+      return Uint8Array.from([...raw].map(char => char.charCodeAt(0)));
+    }
+
+    // Register Service Worker and subscribe
+    navigator.serviceWorker.register('sw.js')
+      .then(() => navigator.serviceWorker.ready)
+      .then(registration =>
+        registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+        })
+      )
+      .then(subscription =>
+        fetch('/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(subscription)
+        })
+      )
+      .catch(err => console.error('Subscription error:', err));
+
+    // Handle form submission to send notifications
+    document.getElementById('notifyForm').addEventListener('submit', event => {
+      event.preventDefault();
+      const formData = new FormData(event.target);
+      const payload = {
+        title: formData.get('title'),
+        message: formData.get('message')
+      };
+
+      fetch('/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        alert('Notification sent successfully');
+      })
+      .catch(err => {
+        console.error('Send error:', err);
+        alert('Failed to send notification');
+      });
+    });
+  </script>
+</body>
+</html>
