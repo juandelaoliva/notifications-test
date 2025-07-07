@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><title>Push Demo</title></head>
+<body>
+  <h1>Push Demo</h1>
+  <button id="subscribe">Suscribirse a notificaciones</button>
+  <script>
+    const publicVapidKey = 'TU_VAPID_PUBLIC_KEY';
+    // Convertir clave
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+    }
+    // Registrar SW
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(() => console.log('SW registrado'))
+        .catch(err => console.error('Error SW:', err));
+    }
+    // Suscripción
+    document.getElementById('subscribe').onclick = async () => {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+      });
+      console.log('Subscription:', JSON.stringify(sub));
+      alert('Suscrito — revisa consola');
+    };
+  </script>
+</body>
+</html>
